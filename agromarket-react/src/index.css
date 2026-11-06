@@ -1,0 +1,20 @@
+/* Старые стили (лаб. 2–3). Правила раскладки (header, main, .card, .catalog,
+   footer) перенесены в layout.css, чтобы не конфликтовали с Flexbox/Grid. */
+:root {
+  --green: #2e7d32;
+  --green-dark: #1b5e20;
+  --bg: #f4f8f1;
+  --card: #ffffff;
+  --text: #263238;
+}
+
+.error {
+  padding: 16px;
+  background: #ffebee;
+  color: #b71c1c;
+  border-radius: 8px;
+}
+
+.status {
+  margin: 0;
+}
