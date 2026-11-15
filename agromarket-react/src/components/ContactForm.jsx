@@ -36,7 +36,8 @@ function ContactForm() {
       const result = await res.json();
 
       if (!res.ok) {   // статус не 2xx (например, 400)
-        alert('Ошибка: ' + result.error);
+        const list = (result.details || []).map((d) => `• ${d.message}`).join('\n');
+        alert('Ошибка: ' + result.error + (list ? '\n' + list : ''));
         return;
       }
 

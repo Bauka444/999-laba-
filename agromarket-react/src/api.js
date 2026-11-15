@@ -22,7 +22,10 @@ export async function apiFetch(path, options = {}) {
   }
 
   if (!res.ok) {
-    throw new Error(data?.error || `Ошибка ${res.status}`);
+    const error = new Error(data?.error || `Ошибка ${res.status}`);
+    error.status = res.status;
+    error.details = data?.details || [];   // ошибки валидации zod: [{ field, message }]
+    throw error;
   }
   return data;
 }

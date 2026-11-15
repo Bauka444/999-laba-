@@ -1,14 +1,17 @@
 import { useState } from 'react';
 import { apiFetch } from '../api.js';
+import FormErrors from './FormErrors.jsx';
 
 export default function LoginForm({ onLogin }) {
   const [mode, setMode] = useState('login');      // 'login' или 'register'
   const [error, setError] = useState('');
+  const [details, setDetails] = useState([]);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+    setDetails([]);
     setLoading(true);
     const data = Object.fromEntries(new FormData(e.target));
 
@@ -21,6 +24,7 @@ export default function LoginForm({ onLogin }) {
       onLogin(result.user, result.token);
     } catch (err) {
       setError(err.message);
+      setDetails(err.details || []);
     } finally {
       setLoading(false);
     }
@@ -32,12 +36,12 @@ export default function LoginForm({ onLogin }) {
     <form className="login-form" onSubmit={handleSubmit}>
       <h3>{isLogin ? 'Вход' : 'Регистрация'}</h3>
 
-      {!isLogin && <input name="name" placeholder="Имя" required />}
-      <input name="email" type="email" placeholder="Email" required />
+      {!isLogin && <input name="name" placeholder="Имя" aria-label="Имя" required />}
+      <input name="email" type="email" placeholder="Email" aria-label="Email" required />
       <input name="password" type="password" placeholder="Пароль (от 8 символов)"
-             required minLength={8} />
+             aria-label="Пароль" required minLength={8} />
 
-      {error && <p className="error">{error}</p>}
+      <FormErrors error={error} details={details} />
 
       <button type="submit" disabled={loading}>
         {loading ? 'Подождите…' : isLogin ? 'Войти' : 'Зарегистрироваться'}

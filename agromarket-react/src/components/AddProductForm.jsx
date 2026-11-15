@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { apiFetch } from '../api.js';
+import FormErrors from './FormErrors.jsx';
 
 export default function AddProductForm({ onAdded }) {
   const [error, setError] = useState('');
+  const [details, setDetails] = useState([]);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+    setDetails([]);
     const form = e.target;
     const data = Object.fromEntries(new FormData(form));
 
@@ -20,17 +23,18 @@ export default function AddProductForm({ onAdded }) {
       form.reset();
     } catch (err) {
       setError(err.message);
+      setDetails(err.details || []);
     }
   }
 
   return (
     <form className="admin-form" onSubmit={handleSubmit}>
       <h3>Новый товар</h3>
-      <input name="name" placeholder="Название" required />
-      <input name="category" placeholder="Категория" />
-      <input name="price" type="number" min="0" step="1" placeholder="Цена, ₸" required />
-      <input name="unit" placeholder="Единица (кг, л)" defaultValue="кг" />
-      {error && <p className="error">{error}</p>}
+      <input name="name" placeholder="Название" aria-label="Название" required />
+      <input name="category" placeholder="Категория" aria-label="Категория" />
+      <input name="price" type="number" min="0" step="1" placeholder="Цена, ₸" aria-label="Цена" required />
+      <input name="unit" placeholder="Единица (кг, л)" aria-label="Единица" defaultValue="кг" />
+      <FormErrors error={error} details={details} />
       <button type="submit">Добавить</button>
     </form>
   );
