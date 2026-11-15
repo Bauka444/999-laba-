@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { pool } from '../db/pool.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+import { validate, idParam } from '../middleware/validate.js';
+import { orderSchema, orderStatusSchema } from '../validation/schemas.js';
 
 const router = Router();
 const adminOnly = [requireAuth, requireRole('admin')];
@@ -21,18 +23,8 @@ router.get('/', adminOnly, async (req, res) => {
 });
 
 // POST /api/orders — новая заявка (форма из React)
-router.post('/', async (req, res) => {
-  const { product_id, name, email, phone, quantity, date, comment } =
-    req.body || {};
-
-  if (!name || !email || !quantity) {
-    return res.status(400).json({
-      error: 'Поля name, email и quantity обязательны',
-    });
-  }
-  if (Number(quantity) < 10) {
-    return res.status(400).json({ error: 'Минимальный объём заказа — 10 кг' });
-  }
+router.post('/', validate(orderSchema), async (req, res) => {
+  const { product_id, name, email, phone, quantity, date, comment } = req.body;
 
   const { rows } = await pool.query(
     `INSERT INTO orders (product_id, name, email, phone, quantity, delivery_date, comment)
@@ -45,14 +37,9 @@ router.post('/', async (req, res) => {
 });
 
 // PATCH /api/orders/3   тело: { "status": "processing" }
-router.patch('/:id', adminOnly, async (req, res) => {
-  const { status } = req.body || {};
+router.patch('/:id', adminOnly, idParam, validate(orderStatusSchema), async (req, res) => {
+  const { status } = req.body;
 
-  if (!status) {
-    return res.status(400).json({ error: 'Поле status обязательно' });
-  }
-
-  // Допустимые значения проверяет CHECK в базе (ошибка 23514 -> 400 в errorHandler)
   const { rows } = await pool.query(
     'UPDATE orders SET status = $1 WHERE id = $2 RETURNING *',
     [status, req.params.id]
