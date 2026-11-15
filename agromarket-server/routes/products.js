@@ -1,20 +1,11 @@
 import { Router } from 'express';
 import { pool } from '../db/pool.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+import { validate, idParam } from '../middleware/validate.js';
+import { productSchema } from '../validation/schemas.js';
 
 const router = Router();
 const adminOnly = [requireAuth, requireRole('admin')];   // цепочка из двух middleware
-
-// Возвращает текст ошибки или null, если всё в порядке
-function validateProduct(body) {
-  const { name, price } = body;
-  if (!name || !String(name).trim()) return 'Поле name обязательно';
-  const n = Number(price);
-  if (price === undefined || price === '' || !Number.isInteger(n) || n < 0) {
-    return 'Поле price должно быть целым числом ≥ 0';
-  }
-  return null;
-}
 
 // Бонус: «белый список» столбцов для сортировки.
 // Имя столбца нельзя передать через $1, поэтому подставляем только значение из этого объекта.
@@ -47,7 +38,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/products/2
-router.get('/:id', async (req, res) => {
+router.get('/:id', idParam, async (req, res) => {
   const { rows } = await pool.query(
     'SELECT * FROM products WHERE id = $1',
     [req.params.id]
@@ -59,34 +50,26 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/products — новый товар
-router.post('/', adminOnly, async (req, res) => {
-  const body = req.body || {};
-  const error = validateProduct(body);
-  if (error) return res.status(400).json({ error });
-
-  const { name, category, price, unit, image } = body;
+router.post('/', adminOnly, validate(productSchema), async (req, res) => {
+  const { name, category, price, unit, image } = req.body;
   const { rows } = await pool.query(
     `INSERT INTO products (name, category, price, unit, image)
      VALUES ($1, $2, $3, $4, $5)
      RETURNING *`,
-    [name, category ?? null, Number(price), unit ?? 'кг', image ?? null]
+    [name, category ?? null, price, unit ?? 'кг', image ?? null]
   );
   res.status(201).json(rows[0]); // вернули созданный товар вместе с новым id
 });
 
 // PUT /api/products/5 — заменить товар целиком
-router.put('/:id', adminOnly, async (req, res) => {
-  const body = req.body || {};
-  const error = validateProduct(body);
-  if (error) return res.status(400).json({ error });
-
-  const { name, category, price, unit, image } = body;
+router.put('/:id', adminOnly, idParam, validate(productSchema), async (req, res) => {
+  const { name, category, price, unit, image } = req.body;
   const { rows } = await pool.query(
     `UPDATE products
      SET name = $1, category = $2, price = $3, unit = $4, image = $5
      WHERE id = $6
      RETURNING *`,
-    [name, category ?? null, Number(price), unit ?? 'кг', image ?? null, req.params.id]
+    [name, category ?? null, price, unit ?? 'кг', image ?? null, req.params.id]
   );
   if (rows.length === 0) {
     return res.status(404).json({ error: 'Товар не найден' });
@@ -95,7 +78,7 @@ router.put('/:id', adminOnly, async (req, res) => {
 });
 
 // DELETE /api/products/5
-router.delete('/:id', adminOnly, async (req, res) => {
+router.delete('/:id', adminOnly, idParam, async (req, res) => {
   const { rowCount } = await pool.query(
     'DELETE FROM products WHERE id = $1',
     [req.params.id]
